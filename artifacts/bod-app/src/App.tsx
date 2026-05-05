@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { LangProvider } from "@/contexts/LangContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
@@ -72,6 +73,7 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <LangProvider>
       <ThemeProvider>
         <AuthProvider>
           <TooltipProvider>
@@ -81,6 +83,7 @@ function App() {
           </TooltipProvider>
         </AuthProvider>
       </ThemeProvider>
+      </LangProvider>
     </QueryClientProvider>
   );
 }

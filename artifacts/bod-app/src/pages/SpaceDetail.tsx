@@ -676,14 +676,12 @@ export default function SpaceDetail() {
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-sm font-semibold text-foreground">Files & Links</h2>
                 <div className="flex gap-2">
-                  {isAdmin && (
-                    <button
-                      onClick={() => { setDataType("folder"); setDataParentId(null); setShowAddData(true); }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:bg-muted transition-colors"
-                    >
-                      <FolderPlus className="w-3.5 h-3.5" /> New Folder
-                    </button>
-                  )}
+                  <button
+                    onClick={() => { setDataType("folder"); setDataParentId(null); setShowAddData(true); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <FolderPlus className="w-3.5 h-3.5" /> New Folder
+                  </button>
                   <button
                     onClick={() => { setDataType("link"); setDataParentId(null); setShowAddData(true); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"

@@ -50,30 +50,26 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left decorative panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden flex-col justify-between p-12">
-        <div className="relative z-10 flex items-center gap-3">
-          <img src={bodLogo} alt="BOD" className="w-10 h-10 rounded-xl object-contain bg-white/10 p-1" />
-          <div>
-            <p className="text-white font-bold text-lg leading-tight">Birth Of Dream</p>
-            <p className="text-white/60 text-xs">Workspace Management</p>
-          </div>
-        </div>
+      {/* Left decorative panel — logo and brand only */}
+      <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden flex-col items-center justify-center gap-6 p-12">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="relative z-10"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="relative z-10 flex flex-col items-center gap-5"
         >
-          <h2 className="text-4xl font-bold text-white leading-tight mb-4">
-            Manage your<br />projects with<br />confidence.
-          </h2>
-          <p className="text-white/70 text-base leading-relaxed max-w-sm">
-            A premium workspace for your team. Track tasks, manage spaces, and keep everything organized.
-          </p>
+          <div className="w-28 h-28 rounded-3xl bg-white/10 backdrop-blur-sm flex items-center justify-center shadow-2xl ring-1 ring-white/20">
+            <img src={bodLogo} alt="BOD" className="w-20 h-20 object-contain" />
+          </div>
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-white tracking-tight">Birth Of Dream</h1>
+            <p className="text-white/60 text-sm mt-1 tracking-widest uppercase">Workspace Management</p>
+          </div>
         </motion.div>
-        <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+        {/* Decorative circles */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-primary/80 pointer-events-none" style={{ zIndex: -1 }} />
       </div>
 
       {/* Right: login form */}

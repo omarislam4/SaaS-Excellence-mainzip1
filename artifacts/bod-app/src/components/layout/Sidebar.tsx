@@ -3,33 +3,17 @@ import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Layers, Calendar, Users, Send,
-  History, Settings, ChevronLeft, ChevronRight, Sun,
+  History, Settings, ChevronRight, Sun,
   Moon, LogOut, ChevronDown, Menu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLang } from "@/contexts/LangContext";
 import { useSpaces } from "@/hooks/useSpaces";
 import { signOut } from "firebase/auth";
 import { auth } from "@/firebase";
-import bodLogo from "@assets/favicon_1777931727478.png";
-
-interface NavItem {
-  icon: typeof LayoutDashboard;
-  label: string;
-  href: string;
-  adminOnly?: boolean;
-}
-
-const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/", adminOnly: true },
-  { icon: Layers, label: "Spaces", href: "/spaces" },
-  { icon: Calendar, label: "Timeline", href: "/timeline", adminOnly: true },
-  { icon: History, label: "History", href: "/history", adminOnly: true },
-  { icon: Users, label: "Members", href: "/members", adminOnly: true },
-  { icon: Send, label: "Senders", href: "/senders", adminOnly: true },
-  { icon: Settings, label: "Settings", href: "/settings" },
-];
+import bodLogo from "@assets/favicon_1777998006882.png";
 
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -37,9 +21,21 @@ export const Sidebar = () => {
   const [location] = useLocation();
   const { userDoc, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { lang, setLang, t } = useLang();
   const { spaces } = useSpaces();
 
   const handleLogout = () => signOut(auth);
+
+  const navItems = [
+    { icon: LayoutDashboard, label: t.dashboard, href: "/", adminOnly: true },
+    { icon: Layers, label: t.spaces, href: "/spaces" },
+    { icon: Calendar, label: t.timeline, href: "/timeline", adminOnly: true },
+    { icon: History, label: t.history, href: "/history", adminOnly: true },
+    { icon: Users, label: t.members, href: "/members", adminOnly: true },
+    { icon: Send, label: t.senders, href: "/senders", adminOnly: true },
+    { icon: Settings, label: t.settings, href: "/settings" },
+  ];
+
   const visibleNav = navItems.filter((item) => !item.adminOnly || isAdmin);
 
   return (
@@ -49,25 +45,22 @@ export const Sidebar = () => {
       transition={{ duration: 0.25, ease: "easeInOut" }}
       className="relative flex flex-col h-full bg-sidebar border-r border-sidebar-border shrink-0 overflow-hidden"
     >
-      {/* Toggle row — above logo */}
+      {/* Toggle row */}
       <div className="flex items-center justify-between h-10 px-3 border-b border-sidebar-border/50 shrink-0">
         <AnimatePresence>
           {!collapsed && (
             <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
               className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 select-none"
             >
-              Menu
+              {t.menu}
             </motion.span>
           )}
         </AnimatePresence>
         <button
           onClick={() => setCollapsed((v) => !v)}
           className="flex items-center justify-center w-7 h-7 rounded-lg text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/10 transition-all duration-150 ml-auto"
-          data-testid="sidebar-collapse-btn"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
         </button>
@@ -82,14 +75,12 @@ export const Sidebar = () => {
           <AnimatePresence>
             {!collapsed && (
               <motion.div
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
+                initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}
                 transition={{ duration: 0.15 }}
                 className="min-w-0"
               >
                 <span className="text-sm font-bold text-sidebar-foreground block truncate">Birth Of Dream</span>
-                <span className="text-xs text-sidebar-foreground/50 block truncate">Workspace</span>
+                <span className="text-xs text-sidebar-foreground/50 block truncate">{t.workspace}</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -115,15 +106,12 @@ export const Sidebar = () => {
                       ? "bg-primary/15 text-primary"
                       : "text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground"
                   )}
-                  data-testid={`nav-${item.label.toLowerCase()}`}
                 >
                   <item.icon className={cn("w-4 h-4 shrink-0", isActive ? "text-primary" : "text-sidebar-foreground/70")} />
                   <AnimatePresence>
                     {!collapsed && (
                       <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         transition={{ duration: 0.15 }}
                         className="text-sm font-medium truncate"
                       >
@@ -145,14 +133,12 @@ export const Sidebar = () => {
                     className="flex items-center gap-1.5 px-3 py-1 text-xs text-sidebar-foreground/50 w-full hover:text-sidebar-foreground transition-colors"
                   >
                     <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", !spacesOpen && "-rotate-90")} />
-                    <span>My Spaces</span>
+                    <span>{t.mySpaces}</span>
                   </button>
                   <AnimatePresence>
                     {spacesOpen && (
                       <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
+                        initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden pl-3"
                       >
@@ -165,7 +151,6 @@ export const Sidebar = () => {
                                   ? "bg-primary/15 text-primary"
                                   : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/10"
                               )}
-                              data-testid={`space-link-${space.id}`}
                             >
                               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: space.color || "#6366f1" }} />
                               <span className="truncate">{space.name}</span>
@@ -184,21 +169,53 @@ export const Sidebar = () => {
 
       {/* Footer */}
       <div className="border-t border-sidebar-border px-2 py-3 space-y-1">
+        {/* Language switcher */}
+        <AnimatePresence>
+          {!collapsed && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg"
+            >
+              <span className="text-xs text-sidebar-foreground/40 mr-1 shrink-0">🌐</span>
+              <button
+                onClick={() => setLang("en")}
+                className={cn(
+                  "text-xs font-semibold px-2 py-0.5 rounded transition-all",
+                  lang === "en" ? "bg-primary/20 text-primary" : "text-sidebar-foreground/40 hover:text-sidebar-foreground"
+                )}
+              >
+                EN
+              </button>
+              <span className="text-sidebar-foreground/20 text-xs">|</span>
+              <button
+                onClick={() => setLang("ar")}
+                className={cn(
+                  "text-xs font-semibold px-2 py-0.5 rounded transition-all",
+                  lang === "ar" ? "bg-primary/20 text-primary" : "text-sidebar-foreground/40 hover:text-sidebar-foreground"
+                )}
+              >
+                AR
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Theme toggle */}
         <button
           onClick={toggleTheme}
           className="flex items-center gap-3 px-3 py-2 rounded-lg w-full text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/10 transition-all duration-150"
-          data-testid="theme-toggle"
         >
           {theme === "dark" ? <Sun className="w-4 h-4 shrink-0" /> : <Moon className="w-4 h-4 shrink-0" />}
           <AnimatePresence>
             {!collapsed && (
               <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-sm font-medium">
-                {theme === "dark" ? "Light mode" : "Dark mode"}
+                {theme === "dark" ? t.lightMode : t.darkMode}
               </motion.span>
             )}
           </AnimatePresence>
         </button>
 
+        {/* User info */}
         {userDoc && (
           <div className={cn("flex items-center gap-2.5 px-3 py-2 rounded-lg", collapsed && "justify-center")}>
             <div className="w-7 h-7 rounded-full bg-primary/30 flex items-center justify-center text-xs font-bold text-primary shrink-0">
@@ -211,7 +228,7 @@ export const Sidebar = () => {
                     <p className="text-xs font-semibold text-sidebar-foreground truncate">{userDoc.displayName || "User"}</p>
                     <p className="text-xs text-sidebar-foreground/50 truncate">{userDoc.email}</p>
                   </div>
-                  <button onClick={handleLogout} className="text-sidebar-foreground/40 hover:text-destructive transition-colors shrink-0" data-testid="logout-btn">
+                  <button onClick={handleLogout} className="text-sidebar-foreground/40 hover:text-destructive transition-colors shrink-0">
                     <LogOut className="w-4 h-4" />
                   </button>
                 </motion.div>
