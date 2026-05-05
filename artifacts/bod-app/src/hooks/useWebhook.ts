@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { doc, onSnapshot, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, arrayUnion, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
 export interface WebhookSettings {
@@ -46,6 +46,7 @@ export interface WebhookPayload {
   source: "dashboard";
 }
 
+// Send webhook and log notification in task.activityLog array (same field n8n writes to)
 export async function sendToWebhook(
   webhookUrl: string,
   data: WebhookPayload,
@@ -61,15 +62,17 @@ export async function sendToWebhook(
 
   if (!res.ok) throw new Error(`Webhook returned ${res.status}`);
 
-  // Log activity on the task if taskId is provided
+  // Save notification in the task's activityLog array field (same as n8n reply handler)
   if (taskId) {
     try {
-      await addDoc(collection(db, "tasks", taskId, "activity"), {
-        userId: "system",
-        action: "Reminder sent via WhatsApp",
-        detail: `Type: ${data.type}`,
-        createdAt: serverTimestamp(),
-        source: "system",
+      await updateDoc(doc(db, "tasks", taskId), {
+        activityLog: arrayUnion({
+          type: "notification",
+          source: "manual",
+          text: `Shift reminder sent via WhatsApp (${data.type})`,
+          timestamp: Date.now(),
+          sender: "System",
+        }),
       });
     } catch {
       // non-critical, ignore
