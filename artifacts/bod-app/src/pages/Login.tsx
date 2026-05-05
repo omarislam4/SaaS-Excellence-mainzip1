@@ -20,12 +20,23 @@ export default function Login() {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate("/");
+      navigate("/spaces");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Login failed";
-      toast.error(msg.includes("user-not-found") || msg.includes("wrong-password") || msg.includes("invalid-credential")
-        ? "Invalid email or password"
-        : "Login failed. Please try again.");
+      console.error("Login error:", msg);
+
+      if (msg.includes("user-not-found") || msg.includes("wrong-password") || msg.includes("invalid-credential")) {
+        toast.error("Invalid email or password");
+      } else if (msg.includes("unauthorized-domain") || msg.includes("auth/unauthorized-domain")) {
+        toast.error("Domain not authorized. Add this domain in Firebase Auth settings.");
+        console.error("Fix: Go to Firebase Console → Authentication → Settings → Authorized domains → Add your domain");
+      } else if (msg.includes("too-many-requests")) {
+        toast.error("Too many attempts. Please try again later.");
+      } else if (msg.includes("network-request-failed")) {
+        toast.error("Network error. Check your internet connection.");
+      } else {
+        toast.error(`Login failed: ${msg}`);
+      }
     } finally {
       setLoading(false);
     }
