@@ -8,6 +8,7 @@ import { useSpaces } from "@/hooks/useSpaces";
 import { useAuth } from "@/contexts/AuthContext";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { MemberRowSkeleton } from "@/components/shared/SkeletonLoader";
+import { useLang } from "@/contexts/LangContext";
 import { toast } from "sonner";
 import { UserDoc } from "@/contexts/AuthContext";
 
@@ -15,6 +16,7 @@ export default function Members() {
   const { members, loading } = useMembers();
   const { spaces } = useSpaces();
   const { isAdmin } = useAuth();
+  const { t } = useLang();
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState({ displayName: "", email: "", role: "member" as "admin" | "member" });
@@ -41,7 +43,7 @@ export default function Members() {
         spaceIds: [],
         createdAt: serverTimestamp(),
       });
-      toast.success("Member added");
+      toast.success(t.addMember);
       setShowCreate(false);
       setForm({ displayName: "", email: "", role: "member" });
     } catch {
@@ -52,7 +54,7 @@ export default function Members() {
   const handleUpdate = async (id: string) => {
     try {
       await updateDoc(doc(db, "users", id), editForm);
-      toast.success("Member updated");
+      toast.success(t.save);
       setEditing(null);
     } catch {
       toast.error("Failed to update member");
@@ -62,7 +64,7 @@ export default function Members() {
   const handleDelete = async (id: string) => {
     try {
       await deleteDoc(doc(db, "users", id));
-      toast.success("Member removed");
+      toast.success(t.delete);
     } catch {
       toast.error("Failed to delete member");
     }
@@ -82,7 +84,7 @@ export default function Members() {
           : [...(spaceDoc.memberIds || []), member.id];
         await updateDoc(doc(db, "spaces", spaceId), { memberIds: newMemberIds });
       }
-      toast.success(hasSpace ? "Removed from space" : "Added to space");
+      toast.success(hasSpace ? t.removeMember : t.addMember);
     } catch {
       toast.error("Failed to update space access");
     }
@@ -92,44 +94,42 @@ export default function Members() {
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Members</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{members.length} team member{members.length !== 1 ? "s" : ""}</p>
+          <h1 className="text-2xl font-bold text-foreground">{t.members}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{members.length} {t.membersLabel}</p>
         </div>
         <motion.button
           whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
-          data-testid="add-member-btn"
         >
-          <Plus className="w-4 h-4" /> Add Member
+          <Plus className="w-4 h-4" /> {t.addMember}
         </motion.button>
       </div>
 
-      {/* Create form */}
       {showCreate && (
         <motion.div
           initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
           className="bg-card border border-border rounded-xl p-5 mb-6 overflow-hidden"
         >
-          <h3 className="text-sm font-semibold text-foreground mb-4">Add New Member</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-4">{t.addMember}</h3>
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1.5">Name</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1.5">{t.fullName}</label>
                 <input
                   value={form.displayName} onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
-                  placeholder="Full name"
+                  placeholder={t.fullName}
                   className="w-full px-3 py-2.5 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
-                  data-testid="input-member-name" required
+                  required
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1.5">Email</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1.5">{t.email}</label>
                 <input
                   type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   placeholder="member@company.com"
                   className="w-full px-3 py-2.5 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
-                  data-testid="input-member-email" required
+                  required
                 />
               </div>
             </div>
@@ -138,26 +138,24 @@ export default function Members() {
               <select
                 value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as "admin" | "member" }))}
                 className="px-3 py-2.5 text-sm bg-background border border-input rounded-xl focus:outline-none"
-                data-testid="select-role"
               >
                 <option value="member">Member</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
             <div className="flex gap-3 justify-end">
-              <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm text-muted-foreground">Cancel</button>
-              <button type="submit" className="px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors" data-testid="submit-member">Add Member</button>
+              <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm text-muted-foreground">{t.cancel}</button>
+              <button type="submit" className="px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors">{t.addMember}</button>
             </div>
           </form>
         </motion.div>
       )}
 
-      {/* Members list */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         {loading ? (
           Array(4).fill(0).map((_, i) => <MemberRowSkeleton key={i} />)
         ) : members.length === 0 ? (
-          <EmptyState icon={Users} title="No members yet" description="Add team members to collaborate on tasks." action={{ label: "Add Member", onClick: () => setShowCreate(true) }} />
+          <EmptyState icon={Users} title={t.noMembersYet} description={t.addMember} action={{ label: t.addMember, onClick: () => setShowCreate(true) }} />
         ) : (
           members.map((member, i) => (
             <motion.div
@@ -166,7 +164,6 @@ export default function Members() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
               className="border-b border-border last:border-0"
-              data-testid={`member-row-${member.id}`}
             >
               <div className="flex items-center gap-4 p-4">
                 <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary shrink-0">
@@ -179,9 +176,8 @@ export default function Members() {
                         value={editForm.displayName || member.displayName}
                         onChange={(e) => setEditForm((f) => ({ ...f, displayName: e.target.value }))}
                         className="text-sm bg-background border border-input rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        data-testid={`edit-name-${member.id}`}
                       />
-                      <button onClick={() => handleUpdate(member.id)} className="text-emerald-500 hover:text-emerald-600 transition-colors" data-testid={`save-member-${member.id}`}><Check className="w-4 h-4" /></button>
+                      <button onClick={() => handleUpdate(member.id)} className="text-emerald-500 hover:text-emerald-600 transition-colors"><Check className="w-4 h-4" /></button>
                       <button onClick={() => setEditing(null)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
                     </div>
                   ) : (
@@ -198,25 +194,22 @@ export default function Members() {
                   <button
                     onClick={() => { setEditing(member.id); setEditForm({ displayName: member.displayName }); }}
                     className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    data-testid={`edit-member-${member.id}`}
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleDelete(member.id)}
                     className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                    data-testid={`delete-member-${member.id}`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
 
-              {/* Space access */}
               {spaces.length > 0 && (
                 <div className="px-4 pb-3 flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <UserCheck className="w-3 h-3" /> Spaces:
+                    <UserCheck className="w-3 h-3" /> {t.spaces}:
                   </span>
                   {spaces.map((space) => {
                     const hasAccess = member.spaceIds?.includes(space.id);
@@ -225,7 +218,6 @@ export default function Members() {
                         key={space.id}
                         onClick={() => handleSpaceToggle(member, space.id)}
                         className={`px-2 py-0.5 text-xs rounded-full border transition-all ${hasAccess ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
-                        data-testid={`space-access-${member.id}-${space.id}`}
                       >
                         {hasAccess && <span className="mr-1">✓</span>}{space.name}
                       </button>

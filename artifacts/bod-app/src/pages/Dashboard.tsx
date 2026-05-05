@@ -6,9 +6,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useAllTasks } from "@/hooks/useTasks";
 import { useSpaces } from "@/hooks/useSpaces";
 import { useMembers } from "@/hooks/useMembers";
-import { DashboardStatSkeleton, TaskCardSkeleton } from "@/components/shared/SkeletonLoader";
+import { DashboardStatSkeleton } from "@/components/shared/SkeletonLoader";
 import { TaskStatusBadge } from "@/components/tasks/TaskStatusBadge";
 import { TaskPriorityBadge } from "@/components/tasks/TaskPriorityBadge";
+import { useLang } from "@/contexts/LangContext";
 import { format, isWithinInterval, addDays } from "date-fns";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -29,22 +30,23 @@ export default function Dashboard() {
   const { spaces, loading: spacesLoading } = useSpaces();
   const { members } = useMembers();
   const [, navigate] = useLocation();
+  const { t } = useLang();
 
   const stats = useMemo(() => {
     const total = tasks.length;
-    const done = tasks.filter((t) => t.status === "done").length;
-    const inProgress = tasks.filter((t) => t.status === "in-progress").length;
-    const blocked = tasks.filter((t) => t.status === "blocked").length;
+    const done = tasks.filter((tk) => tk.status === "done").length;
+    const inProgress = tasks.filter((tk) => tk.status === "in-progress").length;
+    const blocked = tasks.filter((tk) => tk.status === "blocked").length;
     const statusBreakdown = [
-      { name: "To Do", value: tasks.filter((t) => t.status === "todo").length, key: "todo" },
+      { name: "To Do", value: tasks.filter((tk) => tk.status === "todo").length, key: "todo" },
       { name: "In Progress", value: inProgress, key: "in-progress" },
-      { name: "Review", value: tasks.filter((t) => t.status === "review").length, key: "review" },
+      { name: "Review", value: tasks.filter((tk) => tk.status === "review").length, key: "review" },
       { name: "Done", value: done, key: "done" },
       { name: "Blocked", value: blocked, key: "blocked" },
     ].filter((s) => s.value > 0);
 
     const upcoming = tasks
-      .filter((t) => t.deadline && t.status !== "done" && isWithinInterval(t.deadline, { start: new Date(), end: addDays(new Date(), 7) }))
+      .filter((tk) => tk.deadline && tk.status !== "done" && isWithinInterval(tk.deadline, { start: new Date(), end: addDays(new Date(), 7) }))
       .sort((a, b) => (a.deadline?.getTime() || 0) - (b.deadline?.getTime() || 0))
       .slice(0, 5);
 
@@ -54,17 +56,17 @@ export default function Dashboard() {
   }, [tasks]);
 
   const statCards = [
-    { label: "Total Tasks", value: stats.total, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10" },
-    { label: "In Progress", value: stats.inProgress, icon: Clock, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { label: "Completed", value: stats.done, icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+    { label: t.totalTasks, value: stats.total, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10" },
+    { label: t.inProgress, value: stats.inProgress, icon: Clock, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { label: t.completed, value: stats.done, icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10" },
     { label: "Blocked", value: stats.blocked, icon: AlertCircle, color: "text-red-500", bg: "bg-red-500/10" },
   ];
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">Overview of your workspace activity</p>
+        <h1 className="text-2xl font-bold text-foreground">{t.dashboard}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t.completion}</p>
       </div>
 
       {/* Stat cards */}
@@ -79,7 +81,6 @@ export default function Dashboard() {
                 initial="hidden"
                 animate="visible"
                 className="bg-card border border-border rounded-xl p-5"
-                data-testid={`stat-${card.label.toLowerCase().replace(/ /g, "-")}`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{card.label}</span>
@@ -100,7 +101,7 @@ export default function Dashboard() {
           transition={{ delay: 0.2 }}
           className="bg-card border border-border rounded-xl p-5"
         >
-          <h3 className="text-sm font-semibold text-foreground mb-4">Tasks by Status</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-4">{t.tasksTab}</h3>
           {stats.statusBreakdown.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={180}>
@@ -138,7 +139,7 @@ export default function Dashboard() {
           ) : (
             <div className="flex flex-col items-center justify-center h-40 text-muted-foreground text-sm">
               <TrendingUp className="w-8 h-8 mb-2 opacity-30" />
-              No tasks yet
+              {t.noTasksYet}
             </div>
           )}
         </motion.div>
@@ -151,7 +152,7 @@ export default function Dashboard() {
           className="bg-card border border-border rounded-xl p-5"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-foreground">Upcoming Deadlines</h3>
+            <h3 className="text-sm font-semibold text-foreground">{t.upcomingDeadlines}</h3>
             <Calendar className="w-4 h-4 text-muted-foreground" />
           </div>
           {stats.upcoming.length > 0 ? (
@@ -161,7 +162,6 @@ export default function Dashboard() {
                   key={task.id}
                   className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
                   onClick={() => navigate(`/spaces/${task.spaceId}/tasks/${task.id}`)}
-                  data-testid={`upcoming-task-${task.id}`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <TaskStatusBadge status={task.status} size="sm" />
@@ -176,7 +176,7 @@ export default function Dashboard() {
           ) : (
             <div className="flex flex-col items-center justify-center h-32 text-muted-foreground text-sm">
               <Calendar className="w-7 h-7 mb-2 opacity-30" />
-              No upcoming deadlines
+              {t.noUpcomingDeadlines}
             </div>
           )}
         </motion.div>
@@ -189,12 +189,12 @@ export default function Dashboard() {
           className="bg-card border border-border rounded-xl p-5"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-foreground">Spaces</h3>
+            <h3 className="text-sm font-semibold text-foreground">{t.spaces}</h3>
             <button
               onClick={() => navigate("/spaces")}
               className="text-xs text-primary hover:underline flex items-center gap-1"
             >
-              View all <ArrowRight className="w-3 h-3" />
+              {t.viewAllTasks} <ArrowRight className="w-3 h-3" />
             </button>
           </div>
           {spacesLoading ? (
@@ -202,15 +202,14 @@ export default function Dashboard() {
           ) : spaces.length > 0 ? (
             <div className="space-y-2">
               {spaces.slice(0, 5).map((space) => {
-                const spaceTasks = tasks.filter((t) => t.spaceId === space.id);
-                const done = spaceTasks.filter((t) => t.status === "done").length;
+                const spaceTasks = tasks.filter((tk) => tk.spaceId === space.id);
+                const done = spaceTasks.filter((tk) => tk.status === "done").length;
                 const pct = spaceTasks.length > 0 ? Math.round((done / spaceTasks.length) * 100) : 0;
                 return (
                   <div
                     key={space.id}
                     className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
                     onClick={() => navigate(`/spaces/${space.id}`)}
-                    data-testid={`space-summary-${space.id}`}
                   >
                     <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: space.color || "#6366f1" }} />
                     <div className="flex-1 min-w-0">
@@ -222,7 +221,7 @@ export default function Dashboard() {
                         <span className="text-xs text-muted-foreground shrink-0">{pct}%</span>
                       </div>
                     </div>
-                    <span className="text-xs text-muted-foreground shrink-0">{spaceTasks.length} tasks</span>
+                    <span className="text-xs text-muted-foreground shrink-0">{spaceTasks.length} {t.tasks}</span>
                   </div>
                 );
               })}
@@ -230,7 +229,7 @@ export default function Dashboard() {
           ) : (
             <div className="flex flex-col items-center justify-center h-32 text-muted-foreground text-sm">
               <Layers className="w-7 h-7 mb-2 opacity-30" />
-              No spaces yet
+              {t.noSpacesFound}
             </div>
           )}
         </motion.div>
@@ -244,7 +243,7 @@ export default function Dashboard() {
         className="mt-6 bg-card border border-border rounded-xl p-5"
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-foreground">Recent Tasks</h3>
+          <h3 className="text-sm font-semibold text-foreground">{t.tasksTab}</h3>
         </div>
         {tasksLoading ? (
           <div className="space-y-2">{Array(4).fill(0).map((_, i) => <div key={i} className="h-10 bg-muted rounded-lg animate-pulse" />)}</div>
@@ -253,7 +252,7 @@ export default function Dashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  {["Task", "Status", "Priority", "Assignees", "Deadline"].map((h) => (
+                  {[t.tasksTab, t.status, t.priority, t.assignMembers, t.deadline].map((h) => (
                     <th key={h} className="text-left text-xs font-semibold text-muted-foreground pb-2.5 pr-4">{h}</th>
                   ))}
                 </tr>
@@ -266,7 +265,6 @@ export default function Dashboard() {
                       key={task.id}
                       className="hover:bg-muted/30 cursor-pointer transition-colors"
                       onClick={() => navigate(`/spaces/${task.spaceId}/tasks/${task.id}`)}
-                      data-testid={`recent-task-${task.id}`}
                     >
                       <td className="py-2.5 pr-4">
                         <span className="font-medium text-foreground line-clamp-1">{task.title}</span>
@@ -286,7 +284,7 @@ export default function Dashboard() {
             </table>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-8">No tasks yet</p>
+          <p className="text-sm text-muted-foreground text-center py-8">{t.noTasksYet}</p>
         )}
       </motion.div>
     </div>

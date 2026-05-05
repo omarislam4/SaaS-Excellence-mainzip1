@@ -9,6 +9,7 @@ import { useSpaces } from "@/hooks/useSpaces";
 import { useAllTasks } from "@/hooks/useTasks";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { SpaceCardSkeleton } from "@/components/shared/SkeletonLoader";
+import { useLang } from "@/contexts/LangContext";
 import { toast } from "sonner";
 
 const SPACE_COLORS = ["#6366f1", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6"];
@@ -18,6 +19,7 @@ export default function Spaces() {
   const { tasks } = useAllTasks();
   const { isAdmin, userDoc } = useAuth();
   const [, navigate] = useLocation();
+  const { t } = useLang();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
@@ -44,7 +46,7 @@ export default function Spaces() {
         createdAt: serverTimestamp(),
         createdBy: userDoc?.id,
       });
-      toast.success("Space created successfully");
+      toast.success(t.createSpace);
       setShowCreate(false);
       setNewName("");
       setNewDesc("");
@@ -59,8 +61,8 @@ export default function Spaces() {
     <div className="p-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Spaces</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{spaces.length} workspace{spaces.length !== 1 ? "s" : ""}</p>
+          <h1 className="text-2xl font-bold text-foreground">{t.spaces}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{spaces.length} {t.spaces.toLowerCase()}</p>
         </div>
         {isAdmin && (
           <motion.button
@@ -68,10 +70,9 @@ export default function Spaces() {
             whileTap={{ scale: 0.98 }}
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
-            data-testid="create-space-btn"
           >
             <Plus className="w-4 h-4" />
-            New Space
+            {t.newSpace}
           </motion.button>
         )}
       </div>
@@ -82,9 +83,8 @@ export default function Spaces() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search spaces..."
+          placeholder={t.searchSpaces}
           className="w-full pl-10 pr-4 py-2.5 text-sm bg-card border border-input rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all max-w-sm"
-          data-testid="search-spaces"
         />
       </div>
 
@@ -96,31 +96,29 @@ export default function Spaces() {
           exit={{ opacity: 0, height: 0 }}
           className="bg-card border border-border rounded-xl p-5 mb-6"
         >
-          <h3 className="text-sm font-semibold text-foreground mb-4">Create New Space</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-4">{t.createSpace}</h3>
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1.5">Name</label>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1.5">{t.spaceName}</label>
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g. Marketing, Development..."
+                placeholder={t.spaceName}
                 className="w-full px-3 py-2.5 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                data-testid="input-space-name"
                 required
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1.5">Description</label>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1.5">{t.spaceDesc}</label>
               <input
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
-                placeholder="What is this space for?"
+                placeholder={t.spaceDesc}
                 className="w-full px-3 py-2.5 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                data-testid="input-space-desc"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">Color</label>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">{t.spaceColor}</label>
               <div className="flex gap-2 flex-wrap">
                 {SPACE_COLORS.map((c) => (
                   <button
@@ -139,15 +137,14 @@ export default function Spaces() {
                 onClick={() => setShowCreate(false)}
                 className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Cancel
+                {t.cancel}
               </button>
               <button
                 type="submit"
                 disabled={creating}
                 className="px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-60"
-                data-testid="submit-space"
               >
-                {creating ? "Creating..." : "Create Space"}
+                {creating ? t.creating : t.createSpace}
               </button>
             </div>
           </form>
@@ -161,15 +158,15 @@ export default function Spaces() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Layers}
-          title="No spaces found"
-          description={isAdmin ? "Create your first space to start organizing tasks." : "You haven't been added to any spaces yet."}
-          action={isAdmin ? { label: "Create Space", onClick: () => setShowCreate(true) } : undefined}
+          title={t.noSpacesFound}
+          description={isAdmin ? t.createFirstSpace : t.notInAnySpace}
+          action={isAdmin ? { label: t.createSpace, onClick: () => setShowCreate(true) } : undefined}
         />
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((space, i) => {
-            const spaceTasks = tasks.filter((t) => t.spaceId === space.id);
-            const done = spaceTasks.filter((t) => t.status === "done").length;
+            const spaceTasks = tasks.filter((t2) => t2.spaceId === space.id);
+            const done = spaceTasks.filter((t2) => t2.status === "done").length;
             const pct = spaceTasks.length > 0 ? Math.round((done / spaceTasks.length) * 100) : 0;
             return (
               <motion.div
@@ -180,7 +177,6 @@ export default function Spaces() {
                 whileHover={{ y: -2 }}
                 onClick={() => navigate(`/spaces/${space.id}`)}
                 className="bg-card border border-border rounded-xl p-5 cursor-pointer hover:shadow-lg transition-shadow duration-200 group"
-                data-testid={`space-card-${space.id}`}
               >
                 <div className="flex items-start gap-3 mb-4">
                   <div
@@ -199,11 +195,11 @@ export default function Spaces() {
                 <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
                   <span className="flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    {spaceTasks.length} tasks
+                    {spaceTasks.length} {t.tasks}
                   </span>
                   <span className="flex items-center gap-1">
                     <Users className="w-3.5 h-3.5" />
-                    {space.memberIds?.length || 0} members
+                    {space.memberIds?.length || 0} {t.membersLabel}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">

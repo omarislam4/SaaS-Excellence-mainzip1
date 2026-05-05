@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/firebase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLang } from "@/contexts/LangContext";
 import { useTasks, TaskStatus, TaskPriority } from "@/hooks/useTasks";
 import { useMembers } from "@/hooks/useMembers";
 import { useSenders } from "@/hooks/useSenders";
@@ -49,6 +50,7 @@ export default function SpaceDetail() {
   const { senders } = useSenders();
   const { items: dataItems, loading: dataLoading } = useSpaceData(spaceId);
   const { userDoc, isAdmin } = useAuth();
+  const { t } = useLang();
   const [, navigate] = useLocation();
 
   // Task creation
@@ -213,11 +215,11 @@ export default function SpaceDetail() {
   }
 
   const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
-    { id: "overview", label: "Overview", icon: LayoutDashboard },
-    { id: "tasks", label: "Tasks", icon: CheckCircle2 },
-    { id: "timeline", label: "Timeline", icon: Calendar },
-    { id: "members", label: "Members", icon: Users },
-    { id: "data", label: "Data", icon: FolderOpen },
+    { id: "overview", label: t.overview, icon: LayoutDashboard },
+    { id: "tasks", label: t.tasksTab, icon: CheckCircle2 },
+    { id: "timeline", label: t.timelineTab, icon: Calendar },
+    { id: "members", label: t.membersTab, icon: Users },
+    { id: "data", label: t.data, icon: FolderOpen },
   ];
 
   return (
@@ -262,7 +264,7 @@ export default function SpaceDetail() {
                 onClick={() => { setActiveTab("tasks"); setShowCreate(true); }}
                 className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
               >
-                <Plus className="w-4 h-4" /> New Task
+                <Plus className="w-4 h-4" /> {t.newTask}
               </motion.button>
             )}
           </div>
@@ -395,42 +397,42 @@ export default function SpaceDetail() {
                     exit={{ opacity: 0, height: 0 }}
                     className="bg-card border border-border rounded-xl p-5 mb-6 overflow-hidden"
                   >
-                    <h3 className="text-sm font-semibold text-foreground mb-4">Create Task</h3>
+                    <h3 className="text-sm font-semibold text-foreground mb-4">{t.createTask}</h3>
                     <form onSubmit={handleCreate} className="space-y-4">
                       <input
                         value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                        placeholder="Task title..."
+                        placeholder={t.taskTitle}
                         className="w-full px-3 py-2.5 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                         required autoFocus
                       />
                       <textarea
                         value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                        placeholder="Description (optional)"
+                        placeholder={t.description}
                         rows={2}
                         className="w-full px-3 py-2.5 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none"
                       />
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div>
-                          <label className="text-xs text-muted-foreground block mb-1">Status</label>
+                          <label className="text-xs text-muted-foreground block mb-1">{t.status}</label>
                           <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as TaskStatus }))}
                             className="w-full px-3 py-2 text-sm bg-background border border-input rounded-xl focus:outline-none">
                             {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                           </select>
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground block mb-1">Priority</label>
+                          <label className="text-xs text-muted-foreground block mb-1">{t.priority}</label>
                           <select value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value as TaskPriority }))}
                             className="w-full px-3 py-2 text-sm bg-background border border-input rounded-xl focus:outline-none">
                             {["low", "medium", "high", "urgent"].map((p) => <option key={p} value={p}>{p}</option>)}
                           </select>
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground block mb-1">Deadline</label>
+                          <label className="text-xs text-muted-foreground block mb-1">{t.deadline}</label>
                           <input type="date" value={form.deadline} onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
                             className="w-full px-3 py-2 text-sm bg-background border border-input rounded-xl focus:outline-none" />
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground block mb-1">Est. Hours</label>
+                          <label className="text-xs text-muted-foreground block mb-1">{t.estimatedHours}</label>
                           <input type="number" value={form.estimatedHours} onChange={(e) => setForm((f) => ({ ...f, estimatedHours: Number(e.target.value) }))}
                             className="w-full px-3 py-2 text-sm bg-background border border-input rounded-xl focus:outline-none" min={0} />
                         </div>
@@ -438,7 +440,7 @@ export default function SpaceDetail() {
 
                       {/* Assignees — space members only */}
                       <div>
-                        <label className="text-xs text-muted-foreground block mb-1.5">Assign Members</label>
+                        <label className="text-xs text-muted-foreground block mb-1.5">{t.assignMembers}</label>
                         {spaceMembers.length === 0 ? (
                           <p className="text-xs text-muted-foreground italic">No members in this space yet</p>
                         ) : (
@@ -674,19 +676,19 @@ export default function SpaceDetail() {
           {activeTab === "data" && (
             <motion.div key="data" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="p-6 max-w-4xl mx-auto">
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-sm font-semibold text-foreground">Files & Links</h2>
+                <h2 className="text-sm font-semibold text-foreground">{t.filesLinks}</h2>
                 <div className="flex gap-2">
                   <button
                     onClick={() => { setDataType("folder"); setDataParentId(null); setShowAddData(true); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:bg-muted transition-colors"
                   >
-                    <FolderPlus className="w-3.5 h-3.5" /> New Folder
+                    <FolderPlus className="w-3.5 h-3.5" /> {t.newFolder}
                   </button>
                   <button
                     onClick={() => { setDataType("link"); setDataParentId(null); setShowAddData(true); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
                   >
-                    <Link2 className="w-3.5 h-3.5" /> Add Link
+                    <Link2 className="w-3.5 h-3.5" /> {t.addLink}
                   </button>
                 </div>
               </div>
@@ -700,7 +702,7 @@ export default function SpaceDetail() {
                     className="bg-card border border-border rounded-xl p-5 mb-5 overflow-hidden"
                   >
                     <h3 className="text-sm font-semibold text-foreground mb-4">
-                      {dataType === "folder" ? "Create Folder" : "Add Link"}
+                      {dataType === "folder" ? t.createFolder : t.addLink}
                     </h3>
                     <form onSubmit={handleAddData} className="space-y-3">
                       <div>

@@ -4,23 +4,24 @@ import { motion } from "framer-motion";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/firebase";
 import { Eye, EyeOff, Lock, Mail, AlertCircle } from "lucide-react";
-import bodLogo from "@assets/favicon_1777931727478.png";
+import bodLogo from "@assets/favicon_1777998006882.png";
+import { useLang } from "@/contexts/LangContext";
 
-// Translate Firebase error codes to friendly Arabic/English messages
-function getAuthError(msg: string): string {
+function getAuthError(msg: string, lang: string): string {
   if (msg.includes("invalid-credential") || msg.includes("user-not-found") || msg.includes("wrong-password")) {
-    return "البريد الإلكتروني أو كلمة المرور غلط  /  Invalid email or password";
+    return lang === "ar"
+      ? "البريد الإلكتروني أو كلمة المرور غلط"
+      : "Invalid email or password";
   }
   if (msg.includes("too-many-requests")) {
-    return "الحساب متوقف مؤقتاً بسبب كثرة المحاولات — انتظر قليلاً  /  Too many attempts, try again later";
+    return lang === "ar"
+      ? "الحساب متوقف مؤقتاً بسبب كثرة المحاولات — انتظر قليلاً"
+      : "Too many attempts, try again later";
   }
   if (msg.includes("network-request-failed")) {
-    return "مشكلة في الإنترنت  /  Network error";
+    return lang === "ar" ? "مشكلة في الإنترنت" : "Network error";
   }
-  if (msg.includes("unauthorized-domain")) {
-    return "Domain غير مصرح به في Firebase — أضفه من Console";
-  }
-  return `خطأ: ${msg}`;
+  return lang === "ar" ? `خطأ: ${msg}` : `Error: ${msg}`;
 }
 
 export default function Login() {
@@ -30,6 +31,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [, navigate] = useLocation();
+  const { t, lang } = useLang();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,8 +43,7 @@ export default function Login() {
       navigate("/spaces");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Login failed";
-      console.error("Login error:", msg);
-      setError(getAuthError(msg));
+      setError(getAuthError(msg, lang));
     } finally {
       setLoading(false);
     }
@@ -50,7 +51,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left decorative panel — logo and brand only */}
+      {/* Left decorative panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden flex-col items-center justify-center gap-6 p-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -66,7 +67,6 @@ export default function Login() {
             <p className="text-white/60 text-sm mt-1 tracking-widest uppercase">Workspace Management</p>
           </div>
         </motion.div>
-        {/* Decorative circles */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-72 h-72 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-primary/80 pointer-events-none" style={{ zIndex: -1 }} />
@@ -86,11 +86,10 @@ export default function Login() {
             <span className="font-bold text-lg text-foreground">Birth Of Dream</span>
           </div>
 
-          <h1 className="text-2xl font-bold text-foreground mb-1.5">Welcome back</h1>
-          <p className="text-sm text-muted-foreground mb-8">Sign in to your workspace account</p>
+          <h1 className="text-2xl font-bold text-foreground mb-1.5">{t.welcomeBack}</h1>
+          <p className="text-sm text-muted-foreground mb-8">{t.signInSubtitle}</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
-            {/* Inline error banner — clearly visible */}
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -4 }}
@@ -104,7 +103,7 @@ export default function Login() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide" htmlFor="email">
-                Email
+                {t.email}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -123,7 +122,7 @@ export default function Login() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide" htmlFor="password">
-                Password
+                {t.password}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -160,16 +159,16 @@ export default function Login() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                   </svg>
-                  Signing in...
+                  {t.signingIn}
                 </span>
-              ) : "Sign in"}
+              ) : t.signIn}
             </motion.button>
           </form>
 
           <p className="text-sm text-muted-foreground text-center mt-6">
-            Don't have an account?{" "}
+            {t.noAccount}{" "}
             <button onClick={() => navigate("/signup")} className="text-primary hover:underline font-medium">
-              Sign up
+              {t.signUp}
             </button>
           </p>
         </motion.div>
