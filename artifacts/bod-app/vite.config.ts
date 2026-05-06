@@ -16,7 +16,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
       // Points to the shared attached_assets folder (Replit only).
       // For local dev, copy assets into src/assets/ and update imports.
-      "@assets": path.resolve(__dirname, "../../attached_assets"),
+      "@assets": path.resolve(__dirname, "src/assets"),
     },
   },
   server: {

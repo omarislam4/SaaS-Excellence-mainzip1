@@ -3,14 +3,15 @@ import { useParams, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Bell, Calendar, Clock, User, Send,
-  CheckCircle2, AlertCircle, Activity, Loader2, MessageSquare,
+  CheckCircle2, AlertCircle, Activity, Loader2, MessageSquare, Trash2,
 } from "lucide-react";
 import {
-  doc, updateDoc, arrayUnion, serverTimestamp, Timestamp, onSnapshot,
+  doc, updateDoc, arrayUnion, serverTimestamp, Timestamp, onSnapshot, deleteDoc,
 } from "firebase/firestore";
 import { useEffect } from "react";
 import { db } from "@/firebase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLang } from "@/contexts/LangContext";
 import { Task, TaskStatus, TaskPriority, ActivityLog } from "@/hooks/useTasks";
 import { useMembers } from "@/hooks/useMembers";
 import { useSenders } from "@/hooks/useSenders";
@@ -72,6 +73,7 @@ export default function TaskDetail() {
   const [newComment, setNewComment] = useState("");
   const [addingComment, setAddingComment] = useState(false);
   const { isAdmin, userDoc } = useAuth();
+  const { t } = useLang();
   const { members } = useMembers();
   const { senders } = useSenders();
   const { spaces } = useSpaces();
@@ -81,7 +83,6 @@ export default function TaskDetail() {
   const space = spaces.find((s) => s.id === spaceId);
   const spaceMembers = space?.memberIds ? members.filter((m) => space.memberIds.includes(m.id)) : members;
 
-  // Listen to task document in real-time (activityLog lives here)
   useEffect(() => {
     if (!taskId) return;
     const unsub = onSnapshot(doc(db, "tasks", taskId), (snap) => {
@@ -93,7 +94,6 @@ export default function TaskDetail() {
     return () => unsub();
   }, [taskId]);
 
-  // Update task fields and optionally append a notification to activityLog
   const updateTask = async (updates: Partial<Task>, activityText?: string) => {
     if (!taskId || !task) return;
     try {
@@ -101,7 +101,6 @@ export default function TaskDetail() {
         ...updates,
         ...(updates.status === "done" && { completedAt: serverTimestamp() }),
       };
-
       if (activityText && userDoc) {
         const entry = {
           type: "notification",
@@ -112,14 +111,24 @@ export default function TaskDetail() {
         };
         payload.activityLog = arrayUnion(entry);
       }
-
       await updateDoc(doc(db, "tasks", taskId), payload);
     } catch {
       toast.error("Failed to update task");
     }
   };
 
-  // Send WhatsApp reminder and log it in activityLog
+  const handleDeleteTask = async () => {
+    if (!taskId) return;
+    if (!confirm(t.deleteTask + "?")) return;
+    try {
+      await deleteDoc(doc(db, "tasks", taskId));
+      toast.success(t.deleteTask);
+      navigate(`/spaces/${spaceId}`);
+    } catch {
+      toast.error("Failed to delete task");
+    }
+  };
+
   const handleSendReminder = async () => {
     if (!task) return;
     setSending(true);
@@ -128,7 +137,7 @@ export default function TaskDetail() {
       const membersWithPhone = assigneeMembers.filter((m) => m.phone && m.phone.trim() !== "");
 
       if (membersWithPhone.length === 0) {
-        toast.error("No assignees have a phone number set. Ask them to add it in Settings.");
+        toast.error("No assignees have a phone number set.");
         return;
       }
 
@@ -168,28 +177,26 @@ export default function TaskDetail() {
         throw new Error(`Webhook returned ${res.status}: ${text}`);
       }
 
-      // Save notification in activityLog on the task document
       const names = membersWithPhone.map((m) => m.displayName || m.phone).join(", ");
       await updateDoc(doc(db, "tasks", task.id), {
         activityLog: arrayUnion({
           type: "notification",
           source: "manual",
-          text: `Reminder sent via WhatsApp to ${names}`,
+          text: `${t.sendReminder}: ${names}`,
           timestamp: Date.now(),
           sender: userDoc?.displayName || userDoc?.email || "Admin",
         }),
       });
 
-      toast.success(`Reminder sent to ${membersWithPhone.length} member(s) via WhatsApp`);
+      toast.success(`${t.sendReminder} (${membersWithPhone.length})`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
-      toast.error(`Failed to send reminder: ${msg}`);
+      toast.error(`Failed: ${msg}`);
     } finally {
       setSending(false);
     }
   };
 
-  // Add a manual comment to activityLog
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || !taskId || !userDoc) return;
@@ -230,20 +237,18 @@ export default function TaskDetail() {
     return (
       <div className="p-6 flex flex-col items-center justify-center h-full">
         <AlertCircle className="w-12 h-12 text-muted-foreground mb-3" />
-        <p className="text-foreground font-semibold">Task not found</p>
+        <p className="text-foreground font-semibold">{t.noTaskFound}</p>
         <button onClick={() => navigate(`/spaces/${spaceId}`)} className="mt-4 text-sm text-primary hover:underline">
-          Back to space
+          {t.backToSpace}
         </button>
       </div>
     );
   }
 
   const sender = senders.find((s) => s.id === task.senderId);
-
-  // Sort activity newest first
   const sortedActivity = [...(task.activityLog || [])].sort((a, b) => b.timestamp - a.timestamp);
 
-  const activityIcon = {
+  const activityIcon: Record<string, string> = {
     reply: "💬",
     notification: "🔔",
     message: "📨",
@@ -252,38 +257,45 @@ export default function TaskDetail() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate(`/spaces/${spaceId}`)}
           className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-          data-testid="back-btn"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div className="flex-1 text-xs text-muted-foreground flex items-center gap-1">
-          <span className="hover:text-foreground cursor-pointer" onClick={() => navigate("/spaces")}>Spaces</span>
+          <span className="hover:text-foreground cursor-pointer" onClick={() => navigate("/spaces")}>{t.spaces}</span>
           <span>/</span>
           <span className="hover:text-foreground cursor-pointer" onClick={() => navigate(`/spaces/${spaceId}`)}>{space?.name}</span>
           <span>/</span>
-          <span className="text-foreground font-medium">Task</span>
+          <span className="text-foreground font-medium">{t.tasksTab}</span>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-          onClick={handleSendReminder}
-          disabled={sending}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold border border-border bg-card text-foreground rounded-xl hover:bg-muted transition-all disabled:opacity-60"
-          data-testid="send-reminder-btn"
-        >
-          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
-          Send Reminder
-        </motion.button>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <motion.button
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              onClick={handleSendReminder}
+              disabled={sending}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold border border-border bg-card text-foreground rounded-xl hover:bg-muted transition-all disabled:opacity-60"
+            >
+              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+              {t.sendReminder}
+            </motion.button>
+          )}
+          <motion.button
+            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            onClick={handleDeleteTask}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-semibold border border-destructive/30 bg-card text-destructive rounded-xl hover:bg-destructive/10 transition-all"
+          >
+            <Trash2 className="w-4 h-4" />
+            {t.deleteTask}
+          </motion.button>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Main */}
         <div className="lg:col-span-2 space-y-5">
-          {/* Title */}
           <div>
             <h1
               ref={editTitleRef}
@@ -296,18 +308,16 @@ export default function TaskDetail() {
                 }
               }}
               className="text-2xl font-bold text-foreground outline-none focus:ring-2 focus:ring-primary/30 rounded-lg px-1 -mx-1 cursor-text"
-              data-testid="task-title-editable"
             >
               {task.title}
             </h1>
           </div>
 
-          {/* Description */}
           <div>
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">Description</label>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">{t.description}</label>
             <textarea
               defaultValue={task.description || ""}
-              placeholder="Add a description..."
+              placeholder={t.description}
               rows={4}
               onBlur={(e) => {
                 if (e.target.value !== task.description) {
@@ -315,59 +325,51 @@ export default function TaskDetail() {
                 }
               }}
               className="w-full px-3 py-2.5 text-sm bg-card border border-input rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none"
-              data-testid="task-description"
             />
           </div>
 
-          {/* Progress */}
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Progress</label>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t.progress}</label>
               <span className="text-sm font-bold text-foreground">{task.progress}%</span>
             </div>
             <input
               type="range" min={0} max={100} value={task.progress}
               onChange={(e) => updateTask({ progress: Number(e.target.value) })}
               className="w-full accent-primary cursor-pointer"
-              data-testid="task-progress-slider"
             />
             <div className="mt-2">
               <ProgressBar value={task.progress} color="primary" />
             </div>
           </div>
 
-          {/* Activity */}
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-center gap-2 mb-4">
               <Activity className="w-4 h-4 text-muted-foreground" />
-              <h3 className="text-sm font-semibold text-foreground">Activity</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t.activity}</h3>
               {sortedActivity.length > 0 && (
-                <span className="text-xs bg-muted text-muted-foreground rounded-full px-2 py-0.5 ml-auto">
+                <span className="text-xs bg-muted text-muted-foreground rounded-full px-2 py-0.5 ms-auto">
                   {sortedActivity.length}
                 </span>
               )}
             </div>
 
-            {/* Comment input */}
             <form onSubmit={handleAddComment} className="flex gap-2 mb-4">
               <input
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Write a comment..."
+                placeholder={t.writeComment}
                 className="flex-1 px-3 py-2 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                data-testid="comment-input"
               />
               <button
                 type="submit"
                 disabled={addingComment || !newComment.trim()}
                 className="px-3 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-all"
-                data-testid="comment-submit"
               >
                 <Send className="w-4 h-4" />
               </button>
             </form>
 
-            {/* Activity list — only messages, replies, notifications, comments */}
             {sortedActivity.length > 0 ? (
               <div className="space-y-3 max-h-64 overflow-y-auto">
                 {sortedActivity.map((a) => (
@@ -396,22 +398,19 @@ export default function TaskDetail() {
             ) : (
               <div className="flex flex-col items-center gap-2 py-6 text-muted-foreground">
                 <MessageSquare className="w-8 h-8 opacity-30" />
-                <p className="text-sm">No activity yet</p>
+                <p className="text-sm">{t.noActivityYet}</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Sidebar metadata */}
         <div className="space-y-4">
-          {/* Status */}
           <div className="bg-card border border-border rounded-xl p-4">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">Status</label>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">{t.status}</label>
             <select
               value={task.status}
               onChange={(e) => updateTask({ status: e.target.value as TaskStatus })}
               className="w-full px-3 py-2 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-              data-testid="select-task-status"
             >
               {statusOptions.map((s) => <option key={s} value={s}>{statusConfig[s].label}</option>)}
             </select>
@@ -420,14 +419,12 @@ export default function TaskDetail() {
             </div>
           </div>
 
-          {/* Priority */}
           <div className="bg-card border border-border rounded-xl p-4">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">Priority</label>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">{t.priority}</label>
             <select
               value={task.priority}
               onChange={(e) => updateTask({ priority: e.target.value as TaskPriority })}
               className="w-full px-3 py-2 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-              data-testid="select-task-priority"
             >
               {priorityOptions.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
             </select>
@@ -436,15 +433,14 @@ export default function TaskDetail() {
             </div>
           </div>
 
-          {/* Assignees */}
           <div className="bg-card border border-border rounded-xl p-4">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">Assignees</label>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">{t.assignees}</label>
             <div className="mb-2">
               <AvatarGroup memberIds={task.assigneeIds} members={members} max={5} size="md" />
             </div>
             <div className="space-y-1 max-h-40 overflow-y-auto">
               {spaceMembers.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic px-2">No members in this space</p>
+                <p className="text-xs text-muted-foreground italic px-2">{t.noMembersInSpace}</p>
               ) : spaceMembers.map((m) => (
                 <label key={m.id} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 px-2 py-1 rounded-lg transition-colors">
                   <input
@@ -457,7 +453,6 @@ export default function TaskDetail() {
                       updateTask({ assigneeIds: newIds });
                     }}
                     className="accent-primary"
-                    data-testid={`assignee-${m.id}`}
                   />
                   <span className="text-xs text-foreground">{m.displayName || m.email}</span>
                 </label>
@@ -465,10 +460,9 @@ export default function TaskDetail() {
             </div>
           </div>
 
-          {/* Deadline */}
           <div className="bg-card border border-border rounded-xl p-4">
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5 mb-2">
-              <Calendar className="w-3.5 h-3.5" /> Deadline
+              <Calendar className="w-3.5 h-3.5" /> {t.deadline}
             </label>
             <input
               type="date"
@@ -478,14 +472,12 @@ export default function TaskDetail() {
                 updateTask({ deadline: val as Task["deadline"] });
               }}
               className="w-full px-3 py-2 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
-              data-testid="input-task-deadline"
             />
           </div>
 
-          {/* Estimated hours */}
           <div className="bg-card border border-border rounded-xl p-4">
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5 mb-2">
-              <Clock className="w-3.5 h-3.5" /> Estimated Hours
+              <Clock className="w-3.5 h-3.5" /> {t.estimatedHoursLabel}
             </label>
             <input
               type="number"
@@ -493,15 +485,13 @@ export default function TaskDetail() {
               min={0}
               onBlur={(e) => updateTask({ estimatedHours: Number(e.target.value) })}
               className="w-full px-3 py-2 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
-              data-testid="input-task-hours"
             />
           </div>
 
-          {/* Sender */}
           {sender && (
             <div className="bg-card border border-border rounded-xl p-4">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5 mb-2">
-                <User className="w-3.5 h-3.5" /> Sender
+                <User className="w-3.5 h-3.5" /> {t.sender}
               </label>
               <p className="text-sm font-medium text-foreground">{sender.name}</p>
               {sender.company && <p className="text-xs text-muted-foreground">{sender.company}</p>}
@@ -509,13 +499,12 @@ export default function TaskDetail() {
             </div>
           )}
 
-          {/* Created info */}
           <div className="px-4 py-3 text-xs text-muted-foreground space-y-1">
-            <p>Created {format(task.createdAt, "MMM d, yyyy")}</p>
+            <p>{t.created} {format(task.createdAt, "MMM d, yyyy")}</p>
             {task.completedAt && (
               <p className="flex items-center gap-1 text-emerald-500">
                 <CheckCircle2 className="w-3 h-3" />
-                Completed {format(task.completedAt, "MMM d, yyyy")}
+                {t.completed} {format(task.completedAt, "MMM d, yyyy")}
               </p>
             )}
           </div>

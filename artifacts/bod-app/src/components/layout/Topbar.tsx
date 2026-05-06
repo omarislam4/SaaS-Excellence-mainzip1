@@ -6,17 +6,8 @@ import { cn } from "@/lib/utils";
 import { useAllTasks } from "@/hooks/useTasks";
 import { useSpaces } from "@/hooks/useSpaces";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLang } from "@/contexts/LangContext";
 import { format, differenceInDays, isWithinInterval, addDays } from "date-fns";
-
-const breadcrumbLabels: Record<string, string> = {
-  "/": "Dashboard",
-  "/spaces": "Spaces",
-  "/timeline": "Timeline",
-  "/members": "Members",
-  "/senders": "Senders",
-  "/history": "History",
-  "/settings": "Settings",
-};
 
 export const Topbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -28,25 +19,34 @@ export const Topbar = () => {
   const { tasks } = useAllTasks();
   const { spaces } = useSpaces();
   const { userDoc } = useAuth();
+  const { t, isRTL } = useLang();
+
+  const breadcrumbLabels: Record<string, string> = {
+    "/": t.dashboard,
+    "/spaces": t.spaces,
+    "/timeline": t.timeline,
+    "/members": t.members,
+    "/senders": t.senders,
+    "/history": t.history,
+    "/settings": t.settings,
+  };
 
   const currentLabel = Object.entries(breadcrumbLabels).find(([path]) => {
     if (path === "/") return location === "/";
     return location.startsWith(path);
-  })?.[1] || "Page";
+  })?.[1] || "";
 
-  // My tasks — assigned to current user, not done
   const myTasks = userDoc
-    ? tasks.filter((t) => t.assigneeIds?.includes(userDoc.id) && t.status !== "done")
+    ? tasks.filter((tk) => tk.assigneeIds?.includes(userDoc.id) && tk.status !== "done")
     : [];
 
-  const overdueTasks = myTasks.filter((t) => t.deadline && t.deadline < new Date());
+  const overdueTasks = myTasks.filter((tk) => tk.deadline && tk.deadline < new Date());
   const dueSoonTasks = myTasks.filter(
-    (t) => t.deadline && !overdueTasks.includes(t) && isWithinInterval(t.deadline, { start: new Date(), end: addDays(new Date(), 3) })
+    (tk) => tk.deadline && !overdueTasks.includes(tk) && isWithinInterval(tk.deadline, { start: new Date(), end: addDays(new Date(), 3) })
   );
-  const inProgressTasks = myTasks.filter((t) => t.status === "in-progress" && !overdueTasks.includes(t) && !dueSoonTasks.includes(t));
+  const inProgressTasks = myTasks.filter((tk) => tk.status === "in-progress" && !overdueTasks.includes(tk) && !dueSoonTasks.includes(tk));
   const notifCount = overdueTasks.length + dueSoonTasks.length;
 
-  // Close notif panel on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
@@ -77,9 +77,9 @@ export const Topbar = () => {
   const searchResults = searchQuery.length > 1
     ? [
         ...tasks
-          .filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+          .filter((tk) => tk.title.toLowerCase().includes(searchQuery.toLowerCase()))
           .slice(0, 4)
-          .map((t) => ({ type: "task" as const, id: t.id, label: t.title, sub: t.status, spaceId: t.spaceId })),
+          .map((tk) => ({ type: "task" as const, id: tk.id, label: tk.title, sub: tk.status, spaceId: tk.spaceId })),
         ...spaces
           .filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
           .slice(0, 3)
@@ -93,25 +93,21 @@ export const Topbar = () => {
         <span className="text-sm font-semibold text-foreground">{currentLabel}</span>
       </div>
 
-      {/* Search trigger */}
       <button
         onClick={() => { setSearchOpen(true); setTimeout(() => searchRef.current?.focus(), 100); }}
         className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-muted rounded-lg hover:bg-muted/80 transition-colors duration-150"
-        data-testid="search-trigger"
       >
         <Search className="w-3.5 h-3.5" />
-        <span className="hidden sm:block text-xs">Search...</span>
+        <span className="hidden sm:block text-xs">{t.search}</span>
         <kbd className="hidden sm:flex items-center gap-0.5 text-xs bg-background border border-border rounded px-1 py-0.5 font-mono">
           <Command className="w-2.5 h-2.5" />K
         </kbd>
       </button>
 
-      {/* Notification bell */}
       <div className="relative" ref={notifRef}>
         <button
           onClick={() => setNotifOpen((v) => !v)}
           className="relative w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150"
-          data-testid="notifications-btn"
         >
           <Bell className="w-4 h-4" />
           {notifCount > 0 && (
@@ -125,7 +121,6 @@ export const Topbar = () => {
           )}
         </button>
 
-        {/* Notification panel */}
         <AnimatePresence>
           {notifOpen && (
             <motion.div
@@ -133,13 +128,16 @@ export const Topbar = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.97 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              className="absolute right-0 top-10 w-80 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden"
+              className={cn(
+                "absolute top-10 w-72 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden",
+                isRTL ? "left-0" : "right-0"
+              )}
             >
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
+                <h3 className="text-sm font-semibold text-foreground">{t.notifications}</h3>
                 <div className="flex items-center gap-2">
                   {notifCount > 0 && (
-                    <span className="text-xs bg-red-500/10 text-red-500 font-medium px-1.5 py-0.5 rounded-full">{notifCount} alerts</span>
+                    <span className="text-xs bg-red-500/10 text-red-500 font-medium px-1.5 py-0.5 rounded-full">{notifCount}</span>
                   )}
                   <button onClick={() => setNotifOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                     <X className="w-3.5 h-3.5" />
@@ -147,29 +145,29 @@ export const Topbar = () => {
                 </div>
               </div>
 
-              <div className="max-h-80 overflow-y-auto">
+              <div className="max-h-72 overflow-y-auto">
                 {overdueTasks.length === 0 && dueSoonTasks.length === 0 && inProgressTasks.length === 0 && myTasks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+                  <div className="flex flex-col items-center justify-center py-8 text-center px-4">
                     <Bell className="w-8 h-8 text-muted-foreground/30 mb-2" />
-                    <p className="text-sm text-muted-foreground">All caught up!</p>
-                    <p className="text-xs text-muted-foreground/60 mt-0.5">No pending tasks assigned to you.</p>
+                    <p className="text-sm text-muted-foreground">{t.allCaughtUp}</p>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">{t.noPendingTasks}</p>
                   </div>
                 ) : (
                   <div className="py-2">
                     {overdueTasks.length > 0 && (
                       <div>
-                        <p className="text-xs font-semibold text-red-500 uppercase tracking-wide px-4 py-1.5">Overdue</p>
-                        {overdueTasks.map((t) => (
+                        <p className="text-xs font-semibold text-red-500 uppercase tracking-wide px-4 py-1.5">{t.overdue}</p>
+                        {overdueTasks.map((tk) => (
                           <button
-                            key={t.id}
-                            className="flex items-start gap-3 w-full px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
-                            onClick={() => { navigate(`/spaces/${t.spaceId}/tasks/${t.id}`); setNotifOpen(false); }}
+                            key={tk.id}
+                            className="flex items-start gap-3 w-full px-4 py-2.5 hover:bg-muted/50 transition-colors text-start"
+                            onClick={() => { navigate(`/spaces/${tk.spaceId}/tasks/${tk.id}`); setNotifOpen(false); }}
                           >
                             <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-medium text-foreground truncate">{t.title}</p>
+                              <p className="text-xs font-medium text-foreground truncate">{tk.title}</p>
                               <p className="text-xs text-red-500">
-                                {t.deadline ? `${Math.abs(differenceInDays(t.deadline, new Date()))}d overdue` : "No deadline"}
+                                {tk.deadline ? `${Math.abs(differenceInDays(tk.deadline, new Date()))} ${t.daysOverdue}` : t.noDeadline}
                               </p>
                             </div>
                           </button>
@@ -179,20 +177,20 @@ export const Topbar = () => {
 
                     {dueSoonTasks.length > 0 && (
                       <div>
-                        <p className="text-xs font-semibold text-amber-500 uppercase tracking-wide px-4 py-1.5">Due Soon</p>
-                        {dueSoonTasks.map((t) => {
-                          const days = t.deadline ? differenceInDays(t.deadline, new Date()) : 0;
+                        <p className="text-xs font-semibold text-amber-500 uppercase tracking-wide px-4 py-1.5">{t.dueSoon}</p>
+                        {dueSoonTasks.map((tk) => {
+                          const days = tk.deadline ? differenceInDays(tk.deadline, new Date()) : 0;
                           return (
                             <button
-                              key={t.id}
-                              className="flex items-start gap-3 w-full px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
-                              onClick={() => { navigate(`/spaces/${t.spaceId}/tasks/${t.id}`); setNotifOpen(false); }}
+                              key={tk.id}
+                              className="flex items-start gap-3 w-full px-4 py-2.5 hover:bg-muted/50 transition-colors text-start"
+                              onClick={() => { navigate(`/spaces/${tk.spaceId}/tasks/${tk.id}`); setNotifOpen(false); }}
                             >
                               <Clock className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                               <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-foreground truncate">{t.title}</p>
+                                <p className="text-xs font-medium text-foreground truncate">{tk.title}</p>
                                 <p className="text-xs text-amber-500">
-                                  {days === 0 ? "Due today" : days === 1 ? "Due tomorrow" : `Due in ${days} days`}
+                                  {days === 0 ? t.dueToday : days === 1 ? t.dueTomorrow : `${t.dueInDays} ${days} ${t.days}`}
                                 </p>
                               </div>
                             </button>
@@ -203,18 +201,18 @@ export const Topbar = () => {
 
                     {inProgressTasks.length > 0 && (
                       <div>
-                        <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide px-4 py-1.5">In Progress</p>
-                        {inProgressTasks.slice(0, 4).map((t) => (
+                        <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide px-4 py-1.5">{t.inProgress}</p>
+                        {inProgressTasks.slice(0, 4).map((tk) => (
                           <button
-                            key={t.id}
-                            className="flex items-start gap-3 w-full px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
-                            onClick={() => { navigate(`/spaces/${t.spaceId}/tasks/${t.id}`); setNotifOpen(false); }}
+                            key={tk.id}
+                            className="flex items-start gap-3 w-full px-4 py-2.5 hover:bg-muted/50 transition-colors text-start"
+                            onClick={() => { navigate(`/spaces/${tk.spaceId}/tasks/${tk.id}`); setNotifOpen(false); }}
                           >
                             <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-medium text-foreground truncate">{t.title}</p>
+                              <p className="text-xs font-medium text-foreground truncate">{tk.title}</p>
                               <p className="text-xs text-muted-foreground">
-                                {t.deadline ? format(t.deadline, "MMM d") : "No deadline"}
+                                {tk.deadline ? format(tk.deadline, "MMM d") : t.noDeadline}
                               </p>
                             </div>
                           </button>
@@ -231,7 +229,7 @@ export const Topbar = () => {
                     onClick={() => { navigate("/spaces"); setNotifOpen(false); }}
                     className="text-xs text-primary hover:underline w-full text-center"
                   >
-                    View all my tasks →
+                    {t.viewAllTasks}
                   </button>
                 </div>
               )}
@@ -240,7 +238,6 @@ export const Topbar = () => {
         </AnimatePresence>
       </div>
 
-      {/* Search modal */}
       <AnimatePresence>
         {searchOpen && (
           <>
@@ -262,9 +259,8 @@ export const Topbar = () => {
                   ref={searchRef}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search tasks, spaces..."
+                  placeholder={t.searchTasksSpaces}
                   className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
-                  data-testid="search-input"
                 />
                 <button onClick={() => { setSearchOpen(false); setSearchQuery(""); }}>
                   <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
@@ -276,7 +272,7 @@ export const Topbar = () => {
                     searchResults.map((r) => (
                       <button
                         key={`${r.type}-${r.id}`}
-                        className="flex items-center gap-3 w-full px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
+                        className="flex items-center gap-3 w-full px-4 py-2.5 hover:bg-muted/50 transition-colors text-start"
                         onClick={() => {
                           if (r.type === "task") navigate(`/spaces/${r.spaceId}/tasks/${r.id}`);
                           else navigate(`/spaces/${r.id}`);
@@ -292,12 +288,12 @@ export const Topbar = () => {
                       </button>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground px-4 py-3">No results for "{searchQuery}"</p>
+                    <p className="text-sm text-muted-foreground px-4 py-3">{t.noResultsFor} "{searchQuery}"</p>
                   )}
                 </div>
               )}
               {searchQuery.length <= 1 && (
-                <div className="px-4 py-3 text-xs text-muted-foreground">Type to search tasks and spaces...</div>
+                <div className="px-4 py-3 text-xs text-muted-foreground">{t.typeToSearch}</div>
               )}
             </motion.div>
           </>

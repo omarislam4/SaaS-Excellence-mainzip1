@@ -1,74 +1,68 @@
-# Workspace
+# Birth Of Dream (BOD) — Workspace Management App
 
-## Overview
+React + Vite SPA for team task and space management, built on Firebase.
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+## Run & Operate
+
+- **Dev**: `pnpm --filter @workspace/bod-app run dev`
+- **Build**: `pnpm --filter @workspace/bod-app run build` (runs `tsc && vite build`)
+- **Typecheck**: `cd artifacts/bod-app && npx tsc --noEmit`
+- **Deploy**: Netlify — `netlify.toml` sets `command = "npm run build"` + SPA redirect
+- **Admin login**: admin.bod@gmail.com / admin@123
 
 ## Stack
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: Firebase Firestore (client-side, no Replit DB)
-- **Auth**: Firebase Authentication
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- React 19 + Vite 7 + TypeScript 5.9
+- Tailwind CSS v4 (`@tailwindcss/vite` plugin)
+- Firebase Auth + Firestore (no Replit DB)
+- Framer Motion, Wouter routing, Sonner toasts, date-fns, Recharts
 
-## Applications
+## Where things live
 
-### Birth Of Dream (`artifacts/bod-app`)
-- **Type**: React + Vite SPA
-- **Preview path**: `/`
-- **Description**: Premium ClickUp-style project management SaaS app
-- **Auth**: Firebase Auth — admin.bod@gmail.com / admin@123
-- **Database**: Firebase Firestore (collections: users, spaces, tasks, senders, spaces/{id}/data subcollection, tasks/{id}/activity subcollection)
+- `artifacts/bod-app/src/` — main app source
+- `artifacts/bod-app/src/contexts/LangContext.tsx` — ALL EN/AR translations (single source of truth)
+- `artifacts/bod-app/src/contexts/AuthContext.tsx` — Firebase auth + isAdmin logic
+- `artifacts/bod-app/src/pages/` — route pages (Login, Signup, Dashboard, Spaces, SpaceDetail, TaskDetail, Members, Senders, History, Timeline, Settings)
+- `artifacts/bod-app/src/hooks/` — Firebase hooks (useTasks, useSpaces, useMembers, useSenders, useSpaceData, useAllTasks)
+- `artifacts/bod-app/src/assets/` — local logo assets (bod-logo.png, bod-logo2.png)
+- `artifacts/bod-app/netlify.toml` — Netlify build config + SPA redirect
+- `artifacts/bod-app/vite.config.ts` — `@assets` alias → `src/assets/` (Netlify-safe)
 
-#### Features
-- **Auth**: Sign In + Sign Up pages; auto-creates Firestore user doc on first login
-- **Admin gate**: Dashboard route is admin-only; non-admins redirect to /spaces
-- **Spaces**: Admin can create/manage spaces; members only see spaces where their UID is in `space.memberIds`
-- **Space sub-pages**: Each space has 5 tabs — Overview, Tasks, Timeline, Members, Data
-  - **Overview**: Stats, completion breakdown, upcoming deadlines, member list
-  - **Tasks**: Task grid with filters; all space members (not just admin) can create tasks
-  - **Timeline**: Tasks sorted by deadline with days-remaining indicator
-  - **Members**: Admin can add/remove members per-space; task stats per member
-  - **Data**: Folders + links tree structure; admin can create folders, add links, organize by folder
-- **Task creation**: Multi-assignee (space members only); status, priority, deadline, est. hours, sender
-- **Task detail**: Progress slider, description editor, activity log/comments, Send Reminder button (visible to all)
-- **Send Reminder**: POST to https://n8n.bodhosting.com/webhook/task-reminder with task payload
-- **Sender field**: Person who delivered the task from a manager
-- **Sidebar**: Dark logo container (`bg-[#1a1a3e]`); collapse toggle moved above logo; spaces submenu
-- **Global search**: Cmd+K modal — searches tasks and spaces
-- **Dark/light mode**: ThemeContext with localStorage persistence
-- **Firestore index fix**: Tasks filtered by spaceId use client-side sort to avoid composite index requirement
+## Architecture decisions
 
-#### Admin access
-- Email: admin.bod@gmail.com
-- Identified by email OR role === 'admin' in Firestore users collection
-- Admin sees all spaces; members see only spaces where their UID is in `space.memberIds`
-- Auto-creates user doc with role='admin' if no doc exists yet
+- **@assets alias** → `src/assets/` (not `../../attached_assets`) so Netlify build works
+- **Admin gate**: `isAdmin` = email matches admin list OR Firestore `role === "admin"`; admins see all spaces, members only see spaces where their UID is in `space.memberIds`
+- **RTL support**: `document.dir` set on lang change; Topbar notification panel uses `isRTL ? "left-0" : "right-0"` to prevent overflow; inputs use `ps-`/`pe-` logical padding
+- **Tasks sort**: client-side sort after Firestore `where` query (avoids composite index requirement)
+- **i18n**: All text via `useLang()` → `t.key`; supports Arabic/English with full RTL layout
 
-#### Key Hooks
-- `useSpaces` — filters by `memberIds array-contains` for non-admins
-- `useTasks(spaceId)` — where-only query; client-side sort to avoid composite index
-- `useAllTasks` — single orderBy query for dashboard
-- `useMembers` — all users from Firestore
-- `useSenders` — all senders from Firestore
-- `useSpaceData(spaceId)` — subcollection `spaces/{id}/data`; client-side sort
+## Product
 
-#### n8n Integration
-- "Send Reminder" button visible to all authenticated users on task detail page
-- Sends POST to https://n8n.bodhosting.com/webhook/task-reminder
-- Payload: { taskId, taskTitle, assigneeIds, deadline, spaceId, spaceTitle }
+- **Dashboard**: Stats, status pie chart, upcoming deadlines, spaces summary, recent tasks table
+- **Spaces**: Create/manage workspaces with color; admin sees all, members see assigned only
+- **Space tabs**: Overview (stats + team), Tasks (grid + filters + create), Timeline (deadline sort), Members (add/remove + role toggle), Data (folders + links tree)
+- **Task Detail**: Inline edit title/description, progress slider, assignees, deadline, activity log/comments, **Delete Task** (all members), **Send Reminder** (admin only via n8n webhook)
+- **Delete Space**: Admin-only button in SpaceDetail header
+- **Role management**: Admin can promote/demote members to admin in Members page
+- **Members page**: Admin-only; space access toggles per member, role toggle (admin↔member)
+- **Senders**: Admin-only; CRUD for task senders/sources
+- **History**: Completed tasks with search + priority filter
+- **Global search**: Cmd+K modal; searches tasks + spaces
+- **i18n**: Arabic/English toggle in sidebar; full RTL layout
 
-## Key Commands
+## User preferences
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+- Dark theme by default
+- Arabic first language (app supports full AR/EN switch)
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+## Gotchas
+
+- Package name must be `@workspace/bod-app` (not `bod-app`) for pnpm workspace filter to work
+- Netlify needs `netlify.toml` with SPA `[[redirects]]` rule for client-side routing
+- Send Reminder fetches webhook URL from Firestore `settings/global.webhookUrl` with fallback to n8n default
+- `useTasks` uses `where` only (no `orderBy`) to avoid composite Firestore index requirement
+
+## Pointers
+
+- Skills: `react-vite`, `artifacts`, `workflows`
+- n8n webhook: `https://n8n.bodhosting.com/webhook/manual-send-notification`

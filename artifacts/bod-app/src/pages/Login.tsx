@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/firebase";
 import { Eye, EyeOff, Lock, Mail, AlertCircle } from "lucide-react";
-import bodLogo from "@assets/favicon_1777998006882.png";
+import bodLogo from "@assets/bod-logo.png";
 import { useLang } from "@/contexts/LangContext";
 
 function getAuthError(msg: string, lang: string): string {

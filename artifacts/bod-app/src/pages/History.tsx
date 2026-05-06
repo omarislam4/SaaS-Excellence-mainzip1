@@ -7,6 +7,7 @@ import { useMembers } from "@/hooks/useMembers";
 import { useSpaces } from "@/hooks/useSpaces";
 import { TaskPriorityBadge } from "@/components/tasks/TaskPriorityBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { useLang } from "@/contexts/LangContext";
 import { format } from "date-fns";
 
 export default function History() {
@@ -14,35 +15,34 @@ export default function History() {
   const { members } = useMembers();
   const { spaces } = useSpaces();
   const [, navigate] = useLocation();
+  const { t } = useLang();
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
 
-  const completedTasks = tasks.filter((t) => t.status === "done");
+  const completedTasks = tasks.filter((tk) => tk.status === "done");
 
-  const filtered = completedTasks.filter((t) => {
-    const matchesSearch = (t.title ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (t.description ?? "").toLowerCase().includes(search.toLowerCase());
-    const matchesPriority = priorityFilter === "all" || t.priority === priorityFilter;
+  const filtered = completedTasks.filter((tk) => {
+    const matchesSearch = (tk.title ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (tk.description ?? "").toLowerCase().includes(search.toLowerCase());
+    const matchesPriority = priorityFilter === "all" || tk.priority === priorityFilter;
     return matchesSearch && matchesPriority;
   });
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">History</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{completedTasks.length} completed task{completedTasks.length !== 1 ? "s" : ""}</p>
+        <h1 className="text-2xl font-bold text-foreground">{t.history}</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">{completedTasks.length} {t.completed.toLowerCase()}</p>
       </div>
 
-      {/* Filters */}
       <div className="flex gap-3 mb-6 flex-wrap">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search completed tasks..."
-            className="pl-10 pr-4 py-2.5 text-sm bg-card border border-input rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all w-64"
-            data-testid="search-history"
+            placeholder={t.searchCompleted}
+            className="ps-10 pe-4 py-2.5 text-sm bg-card border border-input rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all w-64"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -51,9 +51,8 @@ export default function History() {
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
             className="px-3 py-2.5 text-sm bg-card border border-input rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
-            data-testid="priority-filter"
           >
-            <option value="all">All Priorities</option>
+            <option value="all">{t.allPriorities}</option>
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
@@ -69,8 +68,8 @@ export default function History() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={HistoryIcon}
-          title={completedTasks.length === 0 ? "No completed tasks" : "No matching tasks"}
-          description={completedTasks.length === 0 ? "Tasks you complete will appear here." : "Try adjusting your search or filters."}
+          title={completedTasks.length === 0 ? t.noCompletedTasks : t.noMatchingTasks}
+          description={completedTasks.length === 0 ? t.completedTasksTry : t.adjustFilters}
         />
       ) : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -85,7 +84,6 @@ export default function History() {
                 transition={{ delay: i * 0.03 }}
                 onClick={() => navigate(`/spaces/${task.spaceId}/tasks/${task.id}`)}
                 className="flex items-center gap-4 p-4 border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer transition-colors group"
-                data-testid={`history-task-${task.id}`}
               >
                 <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />

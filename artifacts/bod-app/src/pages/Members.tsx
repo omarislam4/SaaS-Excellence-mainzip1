@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Users, Plus, Trash2, Edit2, Check, X, Shield, UserCheck } from "lucide-react";
+import { Users, Plus, Trash2, Edit2, Check, X, Shield, UserCheck, ShieldCheck } from "lucide-react";
 import { doc, updateDoc, deleteDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/firebase";
 import { useMembers } from "@/hooks/useMembers";
@@ -26,7 +26,7 @@ export default function Members() {
     return (
       <div className="p-6 flex flex-col items-center justify-center h-full">
         <Shield className="w-12 h-12 text-muted-foreground mb-3" />
-        <p className="text-foreground font-semibold">Admin access required</p>
+        <p className="text-foreground font-semibold">{t.adminRequired}</p>
       </div>
     );
   }
@@ -67,6 +67,16 @@ export default function Members() {
       toast.success(t.delete);
     } catch {
       toast.error("Failed to delete member");
+    }
+  };
+
+  const handleRoleToggle = async (member: UserDoc) => {
+    const newRole = member.role === "admin" ? "member" : "admin";
+    try {
+      await updateDoc(doc(db, "users", member.id), { role: newRole });
+      toast.success(newRole === "admin" ? t.makeAdmin : t.removeAdminRole);
+    } catch {
+      toast.error("Failed to update role");
     }
   };
 
@@ -192,6 +202,13 @@ export default function Members() {
                 </span>
                 <div className="flex items-center gap-1">
                   <button
+                    onClick={() => handleRoleToggle(member)}
+                    className={`p-1.5 rounded-lg transition-colors ${member.role === "admin" ? "text-primary hover:bg-primary/10" : "text-muted-foreground hover:text-primary hover:bg-primary/10"}`}
+                    title={member.role === "admin" ? t.removeAdminRole : t.makeAdmin}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                  </button>
+                  <button
                     onClick={() => { setEditing(member.id); setEditForm({ displayName: member.displayName }); }}
                     className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                   >
@@ -219,7 +236,7 @@ export default function Members() {
                         onClick={() => handleSpaceToggle(member, space.id)}
                         className={`px-2 py-0.5 text-xs rounded-full border transition-all ${hasAccess ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
                       >
-                        {hasAccess && <span className="mr-1">✓</span>}{space.name}
+                        {hasAccess && <span className="me-1">✓</span>}{space.name}
                       </button>
                     );
                   })}

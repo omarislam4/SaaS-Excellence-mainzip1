@@ -194,6 +194,18 @@ export default function SpaceDetail() {
     }
   };
 
+  const handleDeleteSpace = async () => {
+    if (!spaceId) return;
+    if (!confirm(t.deleteSpace + "?")) return;
+    try {
+      await deleteDoc(doc(db, "spaces", spaceId));
+      toast.success(t.deleteSpace);
+      navigate("/spaces");
+    } catch {
+      toast.error("Failed to delete space");
+    }
+  };
+
   const toggleFolder = (id: string) => {
     setExpandedFolders((prev) => {
       const next = new Set(prev);
@@ -258,15 +270,26 @@ export default function SpaceDetail() {
                 </div>
               )}
             </div>
-            {isInSpace && (
-              <motion.button
-                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                onClick={() => { setActiveTab("tasks"); setShowCreate(true); }}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
-              >
-                <Plus className="w-4 h-4" /> {t.newTask}
-              </motion.button>
-            )}
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={handleDeleteSpace}
+                  className="flex items-center gap-2 px-3 py-2 border border-destructive/30 text-destructive text-sm font-semibold rounded-xl hover:bg-destructive/10 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" /> {t.deleteSpace}
+                </motion.button>
+              )}
+              {isInSpace && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => { setActiveTab("tasks"); setShowCreate(true); }}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> {t.newTask}
+                </motion.button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -309,10 +332,10 @@ export default function SpaceDetail() {
               {/* Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
                 {[
-                  { label: "Total Tasks", value: tasks.length, color: "text-primary", bg: "bg-primary/10" },
-                  { label: "In Progress", value: statusCounts["in-progress"] || 0, color: "text-blue-500", bg: "bg-blue-500/10" },
-                  { label: "Done", value: statusCounts["done"] || 0, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-                  { label: "Members", value: spaceMembers.length, color: "text-purple-500", bg: "bg-purple-500/10" },
+                  { label: t.totalTasks, value: tasks.length, color: "text-primary", bg: "bg-primary/10" },
+                  { label: t.inProgress, value: statusCounts["in-progress"] || 0, color: "text-blue-500", bg: "bg-blue-500/10" },
+                  { label: t.done, value: statusCounts["done"] || 0, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+                  { label: t.membersLabel, value: spaceMembers.length, color: "text-purple-500", bg: "bg-purple-500/10" },
                 ].map((s) => (
                   <div key={s.label} className="bg-card border border-border rounded-xl p-4">
                     <p className="text-xs text-muted-foreground mb-1">{s.label}</p>
@@ -324,7 +347,7 @@ export default function SpaceDetail() {
               {/* Progress overview */}
               <div className="grid sm:grid-cols-2 gap-4 mb-6">
                 <div className="bg-card border border-border rounded-xl p-5">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Completion</h3>
+                  <h3 className="text-sm font-semibold text-foreground mb-3">{t.completion}</h3>
                   {statusOptions.map((s) => {
                     const count = statusCounts[s] || 0;
                     const pct = tasks.length > 0 ? Math.round((count / tasks.length) * 100) : 0;
@@ -342,8 +365,8 @@ export default function SpaceDetail() {
                 </div>
 
                 <div className="bg-card border border-border rounded-xl p-5">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Upcoming Deadlines</h3>
-                  {tasks.filter((t) => t.deadline && t.status !== "done" && isWithinInterval(t.deadline, { start: new Date(), end: addDays(new Date(), 14) }))
+                  <h3 className="text-sm font-semibold text-foreground mb-3">{t.upcomingDeadlines}</h3>
+                  {tasks.filter((task) => task.deadline && task.status !== "done" && isWithinInterval(task.deadline, { start: new Date(), end: addDays(new Date(), 14) }))
                     .sort((a, b) => (a.deadline?.getTime() || 0) - (b.deadline?.getTime() || 0))
                     .slice(0, 5)
                     .map((task) => {
@@ -351,14 +374,14 @@ export default function SpaceDetail() {
                       return (
                         <div key={task.id} className="flex items-center justify-between py-1.5 cursor-pointer hover:text-primary transition-colors" onClick={() => navigate(`/spaces/${spaceId}/tasks/${task.id}`)}>
                           <span className="text-xs text-foreground truncate flex-1">{task.title}</span>
-                          <span className={cn("text-xs font-medium shrink-0 ml-2", days <= 2 ? "text-red-500" : "text-muted-foreground")}>
-                            {days === 0 ? "Today" : days === 1 ? "Tomorrow" : `${days}d`}
+                          <span className={cn("text-xs font-medium shrink-0 ms-2", days <= 2 ? "text-red-500" : "text-muted-foreground")}>
+                            {days === 0 ? t.today : days === 1 ? t.tomorrow : `${days}d`}
                           </span>
                         </div>
                       );
                     })}
-                  {tasks.filter((t) => t.deadline && t.status !== "done").length === 0 && (
-                    <p className="text-xs text-muted-foreground">No upcoming deadlines</p>
+                  {tasks.filter((task) => task.deadline && task.status !== "done").length === 0 && (
+                    <p className="text-xs text-muted-foreground">{t.noUpcomingDeadlines}</p>
                   )}
                 </div>
               </div>
@@ -366,9 +389,9 @@ export default function SpaceDetail() {
               {/* Members */}
               <div className="bg-card border border-border rounded-xl p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-foreground">Team Members</h3>
+                  <h3 className="text-sm font-semibold text-foreground">{t.teamMembers}</h3>
                   {isAdmin && (
-                    <button onClick={() => setActiveTab("members")} className="text-xs text-primary hover:underline">Manage</button>
+                    <button onClick={() => setActiveTab("members")} className="text-xs text-primary hover:underline">{t.manage}</button>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -380,7 +403,7 @@ export default function SpaceDetail() {
                       <span className="text-xs font-medium text-foreground">{m.displayName || m.email}</span>
                     </div>
                   ))}
-                  {spaceMembers.length === 0 && <p className="text-xs text-muted-foreground">No members added yet</p>}
+                  {spaceMembers.length === 0 && <p className="text-xs text-muted-foreground">{t.noMembersYet}</p>}
                 </div>
               </div>
             </motion.div>
@@ -532,9 +555,9 @@ export default function SpaceDetail() {
           {/* ─── TIMELINE ─── */}
           {activeTab === "timeline" && (
             <motion.div key="timeline" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="p-6 max-w-5xl mx-auto">
-              <h2 className="text-sm font-semibold text-foreground mb-4">Task Timeline</h2>
-              {tasks.filter((t) => t.deadline).length === 0 ? (
-                <EmptyState icon={Calendar} title="No deadlines set" description="Assign deadlines to tasks to see them here." />
+              <h2 className="text-sm font-semibold text-foreground mb-4">{t.taskTimeline}</h2>
+              {tasks.filter((task) => task.deadline).length === 0 ? (
+                <EmptyState icon={Calendar} title={t.noDeadlinesSet} description={t.noUpcomingDeadlines} />
               ) : (
                 <div className="space-y-2">
                   {tasks

@@ -13,7 +13,7 @@ import { useLang } from "@/contexts/LangContext";
 import { useSpaces } from "@/hooks/useSpaces";
 import { signOut } from "firebase/auth";
 import { auth } from "@/firebase";
-import bodLogo from "@assets/favicon_1777998006882.png";
+import bodLogo from "@assets/bod-logo.png";
 
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
